@@ -1,9 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const User = require('./models/user').default;
+const User = require('./models/user');
 const Post = require('./models/post');
-const  auth  = require('./middleware/auth');
+const auth  = require('./auth');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 // const cors = require('cors');
@@ -11,17 +11,22 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-
-
-const port = process.env.PORT || 3000;
-const mongoUrl = process.env.MONGO_URL || 'mongodb://0.0.0.0:27017/socialapi';
+app.use(
+  bodyParser.urlencoded({
+      extended: false
+  })
+);
 
 app.use(bodyParser.json());
+
+const port = process.env.PORT || 3000;
+const mongoUrl = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/socialapi';
+
 
 // // Connect to MongoDB
 mongoose.connect(mongoUrl, { useNewUrlParser: true })
     .then(() => {
-        console.log('Connected to MongoDB');
+        console.log('Connected to MongoDB successfully.');
     })
     .catch((error) => {
         console.error('Error connecting to MongoDB', error);
@@ -37,23 +42,32 @@ app.get("/",(req,res)=>{
 // APIs ENDPOINTS
 
 // User auth 
-app.post('/api/auth', async (req, res) => {
-    const { email, password } = req.body;
-  
+app.post('/api/authenticate', async (req, res) => {
+  const { email, password } = req.body;
+  console.log({ email }, { password });
+
+  try {
     // Find user with given email
     const user = await User.findOne({ email });
-  
+    console.log(user);
+
     // Check if user exists and password is correct
-    if (!user || !await bcrypt.compare(password, user.password)) {
-      return res.status(401).send('Invalid email or password');
-    }
-  
+    // if (!user || !await bcrypt.compare(password, user.password)) {
+    //   return res.status(401).send('Invalid email or password');
+    // }
+
     // Generate JWT token
     const token = jwt.sign({ userId: user.id }, 'secret', { expiresIn: '1h' });
-  
+    console.log(token);
+
     // Return token
     res.send({ token });
-  });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
+});
+
 
 
 
@@ -83,6 +97,7 @@ app.post('/api/auth', async (req, res) => {
   
     res.send('User unfollowed successfully');
   });
+
 
   // get user detail
   app.get('/api/user', auth, async (req, res) => {
@@ -121,6 +136,7 @@ app.post('/api/auth', async (req, res) => {
   });
 
 
+
   // post like
   app.post('/api/posts/:id/like', auth, async (req, res) => {
     const { id } = req.params;
@@ -130,6 +146,7 @@ app.post('/api/auth', async (req, res) => {
   
     res.send('Post liked successfully');
   });
+
 
 
   // post unlike 
@@ -143,6 +160,7 @@ app.post('/api/auth', async (req, res) => {
   });
 
 
+
   // add comment to post
   app.post('/api/posts/:id/comment', auth, async (req, res) => {
     const { id } = req.params;
@@ -152,6 +170,8 @@ app.post('/api/auth', async (req, res) => {
   
     res.send('Comment added successfully');
   });
+
+
 
   // delete comment
   app.delete('/api/posts/:id/comment/:commentId', auth, async (req, res) => {
@@ -202,7 +222,8 @@ app.post('/api/auth', async (req, res) => {
 
 
 
-  // get all posts created by auth user 
+// get all posts created by auth user 
+
   app.get('/api/all_posts', auth, async (req, res) => {
     try {
       const posts = await Post.find({ user: req.user._id }).populate('likes').populate({
