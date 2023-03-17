@@ -7,10 +7,11 @@ const auth  = require('./auth');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 // const cors = require('cors');
-
+require('dotenv').config();
 
 const app = express();
-
+// const key = process.env.JWT_SECRET_KEY
+// console.log(key);
 app.use(
   bodyParser.urlencoded({
       extended: false
@@ -57,7 +58,7 @@ app.post('/api/authenticate', async (req, res) => {
     // }
 
     // Generate JWT token
-    const token = jwt.sign({ userId: user.id }, 'secret', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id },process.env.JWT_SECRET_KEY, { expiresIn: '24h' });
     console.log(token);
 
     // Return token
